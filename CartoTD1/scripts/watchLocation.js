@@ -3,9 +3,11 @@ var id, target, options;
 const watchx = document.getElementById("watchDemo");
 
 function watchSuccess(pos) {
-  watchx.innerHTML = ""; // clear old values
+  watchx.innerHTML = "";
   const crd = pos.coords;
 
+  updateMap(crd.latitude, crd.longitude);
+    
   const fields = [
     "latitude",
     "longitude",
