@@ -39,7 +39,7 @@ gltfLoader.load(
         gltf.scene.position.x = 5;
 
         window.addEventListener("deviceorientation", (event) => {
-            gltf.scene.rotation.set(event.beta * 0.01, event.gamma * 0.01, event.alpha * 0.01)
+            gltf.scene.rotation.set(event.beta * 0.001, event.gamma * 0.001, event.alpha * 0.001)
         });
 
 		// gltf.animations; // Array<THREE.AnimationClip>
