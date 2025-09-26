@@ -41,8 +41,8 @@ gltfLoader.load(
         window.addEventListener("deviceorientation", (event) => {
 
             gltf.scene.rotation.set(event.beta, event.gamma, event.alpha)
-            
-            console.log(`${event.alpha} : ${event.beta} : ${event.gamma}`);
+
+            console.log(`${event.alpha * 0.1} : ${event.beta * 0.1} : ${event.gamma * 0.1}`);
         });
 
 		// gltf.animations; // Array<THREE.AnimationClip>
