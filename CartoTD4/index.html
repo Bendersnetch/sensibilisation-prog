@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Asteroid Shooter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+        }
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+        #score {
+            margin-bottom: 10px;
+        }
+        #health {
+            color: #ff4444;
+        }
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            text-align: center;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        #desktopControls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 20px;
+        }
+        .controlBtn {
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 255, 136, 0.3);
+            border: 3px solid #00ff88;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.1s;
+        }
+        .controlBtn:active {
+            background: rgba(0, 255, 136, 0.6);
+            transform: scale(0.95);
+        }
+        .controlBtn:hover {
+            background: rgba(0, 255, 136, 0.5);
+        }
+        #shootBtn {
+            width: 100px;
+            height: 100px;
+            font-size: 40px;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            text-align: center;
+            font-size: 32px;
+            display: none;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
+        }
+        #gameOver button {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #gameOver button:hover {
+            background: #45a049;
+        }
+        #startScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            text-align: center;
+            z-index: 20;
+        }
+        #startScreen h1 {
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
+        }
+        #startScreen button {
+            padding: 20px 40px;
+            font-size: 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        #startScreen button:hover {
+            background: #45a049;
+        }
+        #pauseMenu {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100;
+        }
+        #pauseBtn {
+            position: absolute;
+            top: 20px;
+            right: 120px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        #pauseBtn:hover {
+            background: #45a049;
+        }
+        .pauseMenuBtn {
+            display: block;
+            width: 200px;
+            margin: 10px auto;
+            padding: 15px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .pauseMenuBtn:hover {
+            background: #45a049;
+        }
+        #countdown {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 72px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 90;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="ui">
+        <div id="score">Score: 0</div>
+        <div id="health">Health: 100</div>
+    </div>
+    
+    <div id="controls">
+        Tilt phone to move • Auto-shooting enabled
+    </div>
+
+    <div id="desktopControls">
+        <button class="controlBtn" id="leftBtn">←</button>
+        <button class="controlBtn" id="rightBtn">→</button>
+    </div>
+    
+    <div id="gameOver">
+        <h2>Game Over!</h2>
+        <p id="finalScore"></p>
+        <button onclick="restartGame()">Play Again</button>
+    </div>
+
+    <div id="startScreen">
+        <h1>ASTEROID SHOOTER</h1>
+        <button onclick="startGame()">Start Game</button>
+        <p style="margin-top: 20px; font-size: 16px;">Tilt/Arrow keys to move • Auto-shooting enabled</p>
+    </div>
+
+    <button id="pauseBtn">⏸️ Pause</button>
+    <div id="pauseMenu">
+        <h2 style="color: white; margin-bottom: 20px;">Game Paused</h2>
+        <button class="pauseMenuBtn" onclick="resumeGame()">Resume</button>
+        <button class="pauseMenuBtn" onclick="restartGame()">Restart</button>
+        <button class="pauseMenuBtn" onclick="quitToMenu()">Quit to Menu</button>
+    </div>
+
+    <div id="countdown">3</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let ship, bullets = [], asteroids = [];
+        let score = 0, health = 100;
+        let gyroX = 0, gyroY = 0;
+        let gameRunning = false;
+        let gamePaused = false;
+        let lastShot = 0;
+        let shootCooldown = 300;
+        let isShooting = false;
+        let leftPressed = false, rightPressed = false;
+        let hasGyro = false;
+
+        // Pause menu functionality
+        function togglePause() {
+            if (!gameRunning && !gamePaused) return; // Don't pause if not running
+            if (!gamePaused) {
+                // Pausing the game
+                gamePaused = true;
+                gameRunning = false;
+                document.getElementById('pauseMenu').style.display = 'block';
+                isShooting = false;
+            } else {
+                // Resuming with countdown
+                resumeGame();
+            }
+        }
+
+        function startCountdown() {
+            let count = 3;
+            const countdownEl = document.getElementById('countdown');
+            document.getElementById('pauseMenu').style.display = 'none';
+            countdownEl.style.display = 'block';
+            countdownEl.textContent = count;
+
+            const countInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownEl.textContent = count;
+                } else {
+                    clearInterval(countInterval);
+                    countdownEl.style.display = 'none';
+                    // Actually resume the game
+                    gamePaused = false;
+                    gameRunning = true;
+                    isShooting = false;
+                }
+            }, 1000);
+        }
+
+        function resumeGame() {
+            startCountdown();
+        }
+
+        function quitToMenu() {
+            gamePaused = false;
+            gameRunning = false;
+            document.getElementById('pauseMenu').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'block';
+            clearInterval(autoShootInterval);
+            
+            // Clear game state
+            bullets.forEach(b => scene.remove(b));
+            asteroids.forEach(a => scene.remove(a));
+            bullets = [];
+            asteroids = [];
+            score = 0;
+            health = 100;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('health').textContent = 'Health: 100';
+        }
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 1, 100);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 15;
+            camera.position.y = -3;
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000011);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            // Create ship
+            createShip();
+            
+            // Stars background
+            createStars();
+            
+            // Event listeners
+            window.addEventListener('resize', onWindowResize);
+            
+            // Gyroscope
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', handleOrientation);
+            }
+            
+            // Keyboard controls
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
+            
+            // Desktop button controls
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            
+            leftBtn.addEventListener('mousedown', () => leftPressed = true);
+            leftBtn.addEventListener('mouseup', () => leftPressed = false);
+            leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); leftPressed = true; });
+            leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); leftPressed = false; });
+            
+            rightBtn.addEventListener('mousedown', () => rightPressed = true);
+            rightBtn.addEventListener('mouseup', () => rightPressed = false);
+            rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); rightPressed = true; });
+            rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); rightPressed = false; });
+            
+            // Pause button event listener
+            document.getElementById('pauseBtn').addEventListener('click', togglePause);
+            
+            // Create a shoot button for mobile
+            const shootButton = document.createElement('button');
+            shootButton.id = 'shootBtn';
+            shootButton.className = 'controlBtn';
+            shootButton.innerHTML = '🔫';
+            shootButton.style.position = 'absolute';
+            shootButton.style.bottom = '30px';
+            shootButton.style.right = '30px';
+            document.body.appendChild(shootButton);
+
+            // Add touch events for shooting
+            shootButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (gameRunning && !gamePaused) isShooting = true;
+            });
+            shootButton.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                isShooting = false;
+            });
+            shootButton.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                if (gameRunning && !gamePaused) isShooting = true;
+            });
+            shootButton.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                isShooting = false;
+            });
+
+            // Add space bar events for shooting
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && gameRunning && !gamePaused) {
+                    isShooting = true;
+                }
+            });
+            document.addEventListener('keyup', (e) => {
+                if (e.code === 'Space') {
+                    isShooting = false;
+                }
+            });
+
+            // Detect if gyroscope is available
+            detectGyroscope();
+        }
+        
+        function detectGyroscope() {
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', function checkGyro(e) {
+                    if (e.gamma !== null && e.beta !== null) {
+                        hasGyro = true;
+                        document.getElementById('desktopControls').style.display = 'none';
+                        document.getElementById('controls').textContent = 'Tilt to move • Tap to shoot';
+                    } else {
+                        hasGyro = false;
+                        document.getElementById('desktopControls').style.display = 'flex';
+                        document.getElementById('controls').textContent = 'Arrows to move • Space to shoot';
+                    }
+                    window.removeEventListener('deviceorientation', checkGyro);
+                }, { once: true });
+                
+                // Fallback if no event fires
+                setTimeout(() => {
+                    if (!hasGyro) {
+                        document.getElementById('desktopControls').style.display = 'flex';
+                        document.getElementById('controls').textContent = 'Use arrow keys/buttons to move • Space or button to shoot';
+                    }
+                }, 1000);
+            } else {
+                document.getElementById('desktopControls').style.display = 'flex';
+                document.getElementById('controls').textContent = 'Use arrow keys/buttons to move • Space or button to shoot';
+            }
+        }
+        
+        function handleKeyDown(e) {
+            if (!gameRunning) return;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                leftPressed = true;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                rightPressed = true;
+            }
+        }
+        
+        function handleKeyUp(e) {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                leftPressed = false;
+            }
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                rightPressed = false;
+            }
+            if (e.key === 'Escape') {
+                togglePause();
+            }
+        }
+
+        function createShip() {
+            const shipGroup = new THREE.Group();
+            
+            // Main body
+            const bodyGeom = new THREE.ConeGeometry(0.5, 2, 4);
+            const bodyMat = new THREE.MeshPhongMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.3 });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
+            body.rotation.x = Math.PI;
+            shipGroup.add(body);
+            
+            // Wings
+            const wingGeom = new THREE.BoxGeometry(2, 0.1, 0.8);
+            const wingMat = new THREE.MeshPhongMaterial({ color: 0x0088ff, emissive: 0x0088ff, emissiveIntensity: 0.2 });
+            const wing = new THREE.Mesh(wingGeom, wingMat);
+            wing.position.y = -0.3;
+            shipGroup.add(wing);
+            
+            shipGroup.position.y = -5;
+            shipGroup.position.z = 0; // ensure ship is on the same plane
+            ship = shipGroup;
+            scene.add(ship);
+        }
+
+        function createStars() {
+            const starsGeom = new THREE.BufferGeometry();
+            const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+            
+            const starsVerts = [];
+            for (let i = 0; i < 1000; i++) {
+                const x = (Math.random() - 0.5) * 100;
+                const y = (Math.random() - 0.5) * 100;
+                const z = (Math.random() - 0.5) * 100;
+                starsVerts.push(x, y, z);
+            }
+            
+            starsGeom.setAttribute('position', new THREE.Float32BufferAttribute(starsVerts, 3));
+            const stars = new THREE.Points(starsGeom, starsMat);
+            scene.add(stars);
+        }
+
+        function createAsteroid() {
+            const size = Math.random() * 1.5 + 0.5;
+            const hp = Math.floor(size * 2);
+            const color = [0xff4444, 0xff8844, 0xffff44, 0x8844ff, 0x44ffff][Math.floor(Math.random() * 5)];
+            
+            // Simple sphere geometry
+            const geom = new THREE.SphereGeometry(size, 16, 16);
+            
+            const mat = new THREE.MeshPhongMaterial({ 
+                color: color, 
+                emissive: color, 
+                emissiveIntensity: 0.2,
+                flatShading: true 
+            });
+            
+            const asteroid = new THREE.Mesh(geom, mat);
+            asteroid.position.set(
+                (Math.random() - 0.5) * 15,
+                10,
+                0 // place every asteroid on the same Z plane to avoid height issues
+            );
+            
+            asteroid.rotation.x = Math.random() * Math.PI;
+            asteroid.rotation.y = Math.random() * Math.PI;
+            
+            asteroid.userData = {
+                hp: hp,
+                maxHp: hp,
+                rotSpeed: (Math.random() - 0.5) * 0.05,
+                speed: Math.random() * 0.05 + 0.02,
+                size: size
+            };
+            
+            scene.add(asteroid);
+            asteroids.push(asteroid);
+
+            // debug log to verify plane
+            console.log('Asteroid created', { index: asteroids.length - 1, pos: asteroid.position.toArray(), size });
+        }
+
+        function shoot() {
+            if (!gameRunning || !isShooting) return;
+            
+            const bulletGeom = new THREE.SphereGeometry(0.1, 8, 8);
+            const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const bullet = new THREE.Mesh(bulletGeom, bulletMat);
+            
+            bullet.position.copy(ship.position);
+            bullet.position.y += 1;
+            bullet.position.z = 0; // ensure bullets are on same plane as asteroids/ship
+            
+            // store previous position for continuous collision detection
+            bullet.userData = {
+                prevPos: bullet.position.clone()
+            };
+            
+            scene.add(bullet);
+            bullets.push(bullet);
+
+            console.log('Bullet fired', { index: bullets.length - 1, pos: bullet.position.toArray() });
+        }
+
+        function handleOrientation(e) {
+            if (!gameRunning) return;
+            
+            // Gamma: left to right (-90 to 90)
+            if (e.gamma !== null) {
+                gyroX = e.gamma;
+                ship.position.x = THREE.MathUtils.clamp(gyroX / 10, -6, 6);
+            }
+        }
+        
+        function updateShipPosition() {
+            if (!gameRunning) return;
+            
+            // Desktop/keyboard controls
+            if (!hasGyro || leftPressed || rightPressed) {
+                if (leftPressed) {
+                    ship.position.x -= 0.15;
+                }
+                if (rightPressed) {
+                    ship.position.x += 0.15;
+                }
+                ship.position.x = THREE.MathUtils.clamp(ship.position.x, -7, 7);
+            }
+        }
+
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                // keep previous position before moving (for segment collision test)
+                if (!b.userData) b.userData = {};
+                if (!b.userData.prevPos) b.userData.prevPos = b.position.clone();
+                else b.userData.prevPos.copy(b.position);
+                
+                b.position.y += 0.5;
+                
+                if (b.position.y > 15) {
+                    scene.remove(b);
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+
+        function updateAsteroids() {
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const ast = asteroids[i];
+                
+                if (!ast || !ast.position) continue;
+                
+                // store previous position for better collision checks
+                if (!ast.userData) ast.userData = {};
+                if (!ast.userData.prevPos) ast.userData.prevPos = ast.position.clone();
+                else ast.userData.prevPos.copy(ast.position);
+                
+                // move and rotate — don't remove here, defer removal so bullets can still hit this frame
+                ast.position.y -= ast.userData.speed;
+                ast.rotation.x += ast.userData.rotSpeed;
+                ast.rotation.y += ast.userData.rotSpeed;
+            }
+        }
+
+        // After collisions are checked, handle removals and ship impacts
+        function processAsteroidRemovals() {
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const ast = asteroids[i];
+                if (!ast || !ast.position) continue;
+
+                // Off screen -> remove
+                if (ast.position.y < -15) {
+                    scene.remove(ast);
+                    asteroids.splice(i, 1);
+                    console.log('Asteroid removed (off-screen)', { index: i });
+                    continue;
+                }
+
+                // Ship collision zone -> apply damage and remove
+                if (ast.position.y < -4 && Math.abs(ast.position.x - ship.position.x) < 1.2) {
+                    health -= 20;
+                    document.getElementById('health').textContent = 'Health: ' + Math.max(0, health);
+                    scene.remove(ast);
+                    asteroids.splice(i, 1);
+                    console.log('Asteroid hit ship', { index: i, newHealth: health });
+
+                    if (health <= 0) {
+                        endGame();
+                    }
+                }
+            }
+        }
+
+        function checkCollisions() {
+            // helper: segment-sphere intersection
+            function segmentIntersectsSphere(p1, p2, center, radius) {
+                const v = new THREE.Vector3().subVectors(p2, p1);
+                const w = new THREE.Vector3().subVectors(center, p1);
+                const vv = v.dot(v);
+                // if segment is a point
+                if (vv === 0) {
+                    return center.distanceToSquared(p1) <= radius * radius;
+                }
+                let t = v.dot(w) / vv;
+                t = Math.max(0, Math.min(1, t));
+                const closest = new THREE.Vector3().addVectors(p1, v.multiplyScalar(t));
+                return closest.distanceToSquared(center) <= radius * radius;
+            }
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                if (!bullet || !bullet.position) continue;
+                
+                let bulletHit = false;
+                
+                // previous position (fallback to current if missing)
+                const prevPos = (bullet.userData && bullet.userData.prevPos) ? bullet.userData.prevPos.clone() : bullet.position.clone();
+                const curPos = bullet.position.clone();
+                
+                for (let j = asteroids.length - 1; j >= 0; j--) {
+                    const ast = asteroids[j];
+                    
+                    if (!ast || !ast.position || !ast.userData) continue;
+                    
+                    // Use segment-sphere test to avoid tunneling.
+                    // Also test against asteroid previous position (accounts for asteroid movement between frames).
+                    const astSize = ast.userData.size || 1;
+                    const collisionRadius = astSize + 0.5;
+                    
+                    const astCurPos = ast.position.clone();
+                    const astPrevPos = (ast.userData && ast.userData.prevPos) ? ast.userData.prevPos.clone() : astCurPos.clone();
+                    
+                    const hitNow = segmentIntersectsSphere(prevPos, curPos, astCurPos, collisionRadius);
+                    const hitPrev = segmentIntersectsSphere(prevPos, curPos, astPrevPos, collisionRadius);
+                    
+                    if (hitNow || hitPrev) {
+                        ast.userData.hp--;
+                        
+                        // Visual feedback
+                        if (ast.material) {
+                            ast.material.emissiveIntensity = 0.8;
+                            setTimeout(() => {
+                                if (ast.material) ast.material.emissiveIntensity = 0.2;
+                            }, 100);
+                        }
+                        
+                        // Log for debugging/visualization
+                        try {
+                            console.log('Asteroid hit', {
+                                asteroidIndex: j,
+                                hpAfterHit: ast.userData.hp,
+                                asteroidPos: astCurPos.toArray(),
+                                asteroidPrevPos: astPrevPos.toArray(),
+                                bulletPrev: prevPos.toArray(),
+                                bulletCur: curPos.toArray()
+                            });
+                        } catch (e) {
+                            console.log('Asteroid hit (no vectors available)', j, ast && ast.userData && ast.userData.hp);
+                        }
+                        
+                        bulletHit = true;
+                        
+                        if (ast.userData.hp <= 0) {
+                            score += ast.userData.maxHp * 10;
+                            document.getElementById('score').textContent = 'Score: ' + score;
+                            scene.remove(ast);
+                            asteroids.splice(j, 1);
+                            console.log('Asteroid destroyed', { asteroidIndex: j, scoreAdded: ast.userData.maxHp * 10 });
+                        }
+                        break;
+                    }
+                }
+                
+                // Remove bullet after checking all asteroids (if hit)
+                if (bulletHit) {
+                    scene.remove(bullet);
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (gameRunning) {
+                updateShipPosition();
+
+                // Handle shooting
+                if (isShooting && Date.now() - lastShot > shootCooldown) {
+                    shoot();
+                    lastShot = Date.now();
+                }
+
+                // move bullets and store their previous positions
+                updateBullets();
+
+                // move asteroids and store their previous positions (but don't remove yet)
+                updateAsteroids();
+
+                // now check collisions between moved bullets and moved asteroids
+                checkCollisions();
+
+                // after collisions, remove asteroids that hit the ship or went off-screen
+                processAsteroidRemovals();
+                
+                // Spawn asteroids - reduced spawn rate
+                if (Math.random() < 0.01) {
+                    createAsteroid();
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameRunning = true;
+            score = 0;
+            health = 100;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('health').textContent = 'Health: 100';
+            lastShot = 0;
+            isShooting = false;
+        }
+
+        function endGame() {
+            gameRunning = false;
+            document.getElementById('finalScore').textContent = 'Final Score: ' + score;
+            document.getElementById('gameOver').style.display = 'block';
+            
+            // Reset shooting state
+            isShooting = false;
+            
+            // Clear asteroids and bullets
+            bullets.forEach(b => scene.remove(b));
+            asteroids.forEach(a => scene.remove(a));
+            bullets = [];
+            asteroids = [];
+        }
+
+        function restartGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('pauseMenu').style.display = 'none';
+            gamePaused = false;
+            
+            // Clear all existing game objects
+            bullets.forEach(b => scene.remove(b));
+            asteroids.forEach(a => scene.remove(a));
+            bullets = [];
+            asteroids = [];
+            
+            // Reset score and health
+            score = 0;
+            health = 100;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('health').textContent = 'Health: 100';
+            
+            // Reset ship position
+            if (ship) {
+                ship.position.set(0, -5, 0);
+            }
+            
+            // Reset shooting state
+            isShooting = false;
+            
+            // Start countdown before starting game
+            let count = 3;
+            const countdownEl = document.getElementById('countdown');
+            countdownEl.style.display = 'block';
+            countdownEl.textContent = count;
+
+            const countInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownEl.textContent = count;
+                } else {
+                    clearInterval(countInterval);
+                    countdownEl.style.display = 'none';
+                    // Start fresh game after countdown
+                    startGame();
+                }
+            }, 1000);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Initialize and start
+        init();
+        animate();
+    </script>
+</body>
+</html>
